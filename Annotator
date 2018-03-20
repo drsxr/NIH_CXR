@@ -1,0 +1,120 @@
+#For reproducibility set seeds for random variables
+import numpy as np
+import tensorflow as tf
+import random as rn
+import os
+os.environ['PYTHONHASHSEED'] = '0'
+np.random.seed(1000)
+rn.seed(12345)
+tf.set_random_seed(1234)
+seed = 12345
+# Force TensorFlow to use single thread.
+# Multiple threads are a potential source of
+# non-reproducible results.
+# For further details, see: https://stackoverflow.com/questions/42022950/which-seeds-have-to-be-set-where-to-realize-100-reproducibility-of-training-res
+# session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)  #UNCOMMENT HERE!
+
+#import keras
+import pandas as pd 
+import matplotlib.image as image
+import matplotlib.pyplot as plt
+import matplotlib.pylab as pylab
+import matplotlib.figure as fig
+from pylab import rcParams
+import skimage
+#from skimage.transform import resize
+#import subprocess
+#from operator import itemgetter
+#from sklearn.model_selection import train_test_split
+#import itertools
+
+#filenames and paths
+rootfilepath = "/media/snet/data/"
+indexfilepath = rootfilepath +"NIH_CXR/"               #directory of indexfile
+imagesfilepath = indexfilepath +"NIHCXRimages/" #directory of raw 1024x1024 PNG CXR image data
+outputfilepath = rootfilepath+"Alpha/"                 #main output file directory
+indexfile = "cxrindexfile.csv"                           #filename of master index file
+outdexfile = "cxrindexalpha.csv"                       #filename of new output index file
+
+#variable initialization
+sel=False
+#count=0
+#checksum=0
+a=0
+z=0
+start_file_position=0 #start at zero index because python
+#Full_Findings =""
+All_Findings=""
+#Single_Label=""
+#name =""
+#string_list=""
+#Filename =[] 
+#holder=[]
+#labels=[]
+#newlabels=[]
+#Findings_Matrix=[]
+#Label_Types=['No Finding','Atelectasis','Cardiomegaly','Consolidation','Edema','Effusion','Emphysema','Fibrosis','Hernia',\
+           # 'Infiltration','Mass','Nodule','Pleural_Thickening','Pneumonia','Pneumothorax']
+
+def Read(fn):
+    temp = image.imread(fn, format="png") # read in the image corresponding to filename
+    #print("Reading: "+fn) - useful as a check but not necessary in this instance
+    return temp
+
+def Display(fn):
+    #%matplotlib 
+    plt.ion()
+    plt.rcParams['savefig.facecolor'] = "0.8"
+    rcParams["figure.facecolor"]="black"
+    rcParams["figure.edgecolor"]="black"
+    rcParams["figure.figsize"] = 13, 13
+    plt.title("File:"+All_Findings.index[a]+" Normal? Y/N", fontsize=24,color="white")
+    plt.pause(0.0001)
+    imgplot = plt.imshow(fn, cmap="Greys_r")
+    plt.pause(0.0001)
+    #plt.xlabel("Normal  (Y or N)",fontsize=20)
+    #plt.pause(0.0001)
+    plt.axis('off')
+    #imgplot.axes.get_xaxis().set_visible(False)
+    #imgplot.axes.get_yaxis().set_visible(False)
+    plt.pause(0.0001)
+    plt.show()
+    plt.pause(0.0001)
+
+#Loops waiting for keyboard input
+#Returns False for a NO and True for a YES (Finding/Label Positive)
+def GetInput(sel):
+    keypress = ""     
+    while True:
+        print("Enter 0 for N or 6 for Y  :")    
+        keypress = input()
+        if keypress == "0":   #the No Value
+            sel = False
+            break
+        elif keypress == "6": #the Yes Value
+            sel = True
+            break
+    return(sel)
+
+#Initialize
+#plt.gray()  # tells matplotlib to display images in greyscale
+cxrindex = pd.read_csv(indexfilepath+indexfile,index_col=0) #read in the main index file
+start_file_position = 0  #because python
+file_limit = 19 # for test
+#file_limit =len(cxrindex) # the entire database - think before you do this!
+
+All_Findings = cxrindex.loc [:, "Findings"] #read in the findings column from the master index file
+
+for a in range (start_file_position,file_limit):         #first, loop through all files
+    if All_Findings[a]=="No Finding":                    #check to see if image is a No Finding image
+        
+        Full_Filename = imagesfilepath+All_Findings.index[a] #this is the path + filename
+        currentCXR = Read(Full_Filename)                     #get the current CXR
+        Display(currentCXR)                                  #display it
+        klass = GetInput(sel)                                #select its attribute
+        if klass == True:
+            All_Findings[a]=(All_Findings[a]+"|"+"Normal")   #append Normal
+
+print(All_Findings)
+
+All_Findings.to_csv(outputfilepath+outdexfile)           #all finished - write .csv file to disk
